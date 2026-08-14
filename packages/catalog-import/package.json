@@ -24,7 +24,7 @@
     "unzipper": "^0.12.5"
   },
   "devDependencies": {
-    "@types/node": "^24.10.0",
+    "@types/node": "^26.2.0",
     "@types/pg": "^8.21.0",
     "@types/unzipper": "^0.10.11",
     "@vitest/coverage-v8": "^4.1.10",
