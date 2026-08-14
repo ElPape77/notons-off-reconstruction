@@ -89,7 +89,10 @@ begin
     join pg_catalog.pg_class relation
       on relation.oid = attribute.attrelid
     cross join lateral pg_catalog.aclexplode(
-      coalesce(attribute.attacl, array[]::aclitem[])
+      coalesce(
+        attribute.attacl,
+        pg_catalog.acldefault('c', relation.relowner)
+      )
     ) privilege
     where relation.oid = 'off_catalog.schema_migrations'::regclass
       and attribute.attnum > 0
