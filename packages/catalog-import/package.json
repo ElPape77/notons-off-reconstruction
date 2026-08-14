@@ -1,0 +1,35 @@
+{
+  "name": "@notons/catalog-import",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "catalog:check": "tsx src/cli.ts check",
+    "catalog:off-reconstruct": "tsx src/off-cli.ts",
+    "catalog:off-init": "tsx src/off-init-cli.ts",
+    "catalog:off-manifest": "tsx src/manifest-cli.ts",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@notons/shared": "*",
+    "commander": "^15.0.0",
+    "csv-parse": "^7.0.2",
+    "pg": "^8.23.0",
+    "unzipper": "^0.12.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/pg": "^8.21.0",
+    "@types/unzipper": "^0.10.11",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

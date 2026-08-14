@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=critical
+      - run: npm test
+      - run: npm run test:coverage
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.10-bookworm@sha256:4f736ae292687621d4dbe0d499ffd024a36bd2ee7d8ca6f2ccd4c800f047b394
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: notons_off_catalog
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d notons_off_catalog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      OFF_CATALOG_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/notons_off_catalog
+      OFF_CATALOG_DISPOSABLE_READER_LOGIN_SMOKE: '1'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client and pgTAP in the disposable service
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+          postgres_container="$(docker ps --filter 'publish=5432' --format '{{.ID}}')"
+          test -n "$postgres_container"
+          test "$(printf '%s\n' "$postgres_container" | wc -l)" -eq 1
+          docker exec --user root "$postgres_container" bash -ceu '
+            apt-get update
+            apt-get install --yes postgresql-17-pgtap
+            rm -rf /var/lib/apt/lists/*
+          '
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Initialise the isolated OFF database
+        run: npm run catalog:off-init
+      - name: Run all transactional PostgreSQL tests
+        run: npm run test:off-db
+      - name: Reconstruct and verify a metadata-only fixture end to end
+        run: npm run test:off-e2e
