@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
-    "@types/pg": "^8.21.0",
+    "@types/pg": "^8.23.1",
     "@types/unzipper": "^0.10.11",
     "@vitest/coverage-v8": "^4.1.10",
     "tsx": "^4.23.12",
