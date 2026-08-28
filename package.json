@@ -27,7 +27,7 @@
     "manifest:verify": "node scripts/verify-reconstruction-manifest.mjs"
   },
   "devDependencies": {
-    "@types/node": "^24.10.0",
+    "@types/node": "^26.3.0",
     "ajv": "^8.20.0",
     "prettier": "^3.6.2",
     "vitest": "^4.1.10"
