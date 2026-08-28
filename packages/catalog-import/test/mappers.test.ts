@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { ColumnMapper, OpenFoodFactsMapper, RowMappingError } from '../src/index.js';
+import {
+  ColumnMapper,
+  OpenFoodFactsMapper,
+  prepareCatalogProduct,
+  RowMappingError,
+} from '../src/index.js';
 
 describe('mapping fournisseur isolé', () => {
   it('transforme une ligne Open Food Facts française de snacks', () => {
@@ -97,12 +102,126 @@ describe('mapping fournisseur isolé', () => {
   });
 
   it("permet d'ajouter un fournisseur par configuration de colonnes", () => {
-    const mapper = new ColumnMapper({ barcode: 'ean', name: 'label', brand: 'maker' });
-    expect(mapper.map({ ean: '96385074', label: 'Snack test', maker: 'Démo' })).toMatchObject({
+    const mapper = new ColumnMapper({
+      barcode: 'ean',
+      name: 'label',
+      brand: 'maker',
+      ingredientsText: 'ingredients',
+    });
+    expect(
+      mapper.map({
+        ean: '96385074',
+        label: 'Snack test',
+        maker: 'Démo',
+        ingredients: 'Pommes de terre, huile, sel.',
+      }),
+    ).toMatchObject({
       kind: 'product',
-      product: { barcode: '96385074', name: 'Snack test', brand: 'Démo' },
+      product: {
+        barcode: '96385074',
+        name: 'Snack test',
+        brand: 'Démo',
+        ingredientsText: 'Pommes de terre, huile, sel.',
+      },
     });
     expect(() => mapper.map({ label: 'Sans code' })).toThrow(RowMappingError);
+  });
+
+  it('privilégie les ingrédients français, utilise le texte générique en repli et le borne', () => {
+    const mapper = new OpenFoodFactsMapper();
+    const french = mapper.map({
+      code: '4006381333931',
+      product_name: 'Produit français',
+      ingredients_text_fr: 'Farine de blé, eau, sel.',
+      ingredients_text: 'Wheat flour, water, salt.',
+    });
+    const fallback = mapper.map({
+      code: '96385074',
+      product_name: 'Produit sans traduction',
+      ingredients_text_fr: '   ',
+      ingredients_text: 'Oats, cocoa.',
+    });
+
+    expect(french).toMatchObject({
+      kind: 'product',
+      product: { ingredientsText: 'Farine de blé, eau, sel.' },
+    });
+    expect(fallback).toMatchObject({
+      kind: 'product',
+      product: { ingredientsText: 'Oats, cocoa.' },
+    });
+    if (french.kind !== 'product') throw new Error('Produit OFF attendu.');
+
+    const prepared = prepareCatalogProduct({
+      ...french.product,
+      ingredientsText: `  ${'🍅'.repeat(10_001)}\u0000  `,
+    });
+    expect(Array.from(prepared.ingredientsText ?? '')).toHaveLength(10_000);
+    expect(prepared.ingredientsText).toBe('🍅'.repeat(10_000));
+  });
+
+  it('prefere les allergenes francais et accepte le champ du snapshot OFF actif', () => {
+    const mapper = new OpenFoodFactsMapper();
+    const french = mapper.map({
+      code: '4006381333931',
+      product_name: 'Produit francais',
+      allergens_fr: 'Lait, Fruits à coque, lait',
+      allergens: 'Milk, Nuts',
+    });
+    const activeSnapshotFallback = mapper.map({
+      code: '96385074',
+      product_name: 'Produit du snapshot actif',
+      allergens: 'en:milk,en:soybeans',
+    });
+    const europeanTaxonomy = mapper.map({
+      code: '3017620422003',
+      product_name: 'Produit avec les allergenes UE',
+      allergens:
+        'en:gluten,en:crustaceans,en:eggs,en:fish,en:peanuts,en:soybeans,en:milk,en:nuts,en:celery,en:mustard,en:sesame-seeds,en:sulphur-dioxide-and-sulphites,en:lupin,en:molluscs,en:kiwi',
+    });
+
+    expect(french).toMatchObject({
+      kind: 'product',
+      product: { allergens: ['Lait', 'Fruits à coque'] },
+    });
+    expect(activeSnapshotFallback).toMatchObject({
+      kind: 'product',
+      product: { allergens: ['Lait', 'Soja'] },
+    });
+    expect(europeanTaxonomy).toMatchObject({
+      kind: 'product',
+      product: {
+        allergens: [
+          'Gluten',
+          'Crustacés',
+          'Œufs',
+          'Poissons',
+          'Arachides',
+          'Soja',
+          'Lait',
+          'Fruits à coque',
+          'Céleri',
+          'Moutarde',
+          'Graines de sésame',
+          'Anhydride sulfureux et sulfites',
+          'Lupin',
+          'Mollusques',
+          'Kiwi',
+        ],
+      },
+    });
+    if (french.kind !== 'product') throw new Error('Produit OFF attendu.');
+
+    const prepared = prepareCatalogProduct({
+      ...french.product,
+      allergens: [
+        '  Lait  ',
+        '',
+        ...Array.from({ length: 80 }, (_, index) => `Allergene ${index}`),
+      ],
+    });
+    expect(prepared.allergens?.slice(0, 2)).toEqual(['Lait', 'Allergene 0']);
+    expect(prepared.allergens).toHaveLength(64);
   });
 
   it("distingue un chemin d'image interne d'une URL de provenance", () => {
@@ -166,6 +285,10 @@ describe('mapping fournisseur isolé', () => {
       code: '3017620422003',
       product_name_fr: 'Produit francais',
       generic_name_fr: 'Pate a tartiner',
+      ingredients_text_fr: 'Sucre, noisettes, cacao.',
+      ingredients_text: 'Sugar, hazelnuts, cocoa.',
+      allergens_fr: 'Noisettes,Lait',
+      allergens: 'Hazelnuts,Milk',
       brands: 'Exemple,Marque',
       quantity: '400 g',
       categories: 'Pates a tartiner,Produits sucres',
@@ -204,6 +327,8 @@ describe('mapping fournisseur isolé', () => {
       kind: 'product',
       product: {
         genericName: 'Pate a tartiner',
+        ingredientsText: 'Sucre, noisettes, cacao.',
+        allergens: ['Fruits à coque', 'Lait'],
         offCategories: ['Pates a tartiner', 'Produits sucres'],
         offCategoryTags: ['en:spreads', 'en:sweet-spreads'],
         countries: ['France', 'Belgique'],
@@ -293,11 +418,33 @@ describe('mapping fournisseur isolé', () => {
   it("valide les colonnes requises d'un snapshot OFF avant tout mapping", () => {
     const mapper = new OpenFoodFactsMapper();
     expect(() =>
-      mapper.validateFullSnapshotHeader(['code', 'product_name', 'brands']),
+      mapper.validateFullSnapshotHeader([
+        'code',
+        'product_name',
+        'brands',
+        'ingredients_text',
+        'allergens',
+      ]),
     ).not.toThrow();
     expect(() => mapper.validateFullSnapshotHeader(['code;product_name;brands'])).toThrow(
       /En-tete Open Food Facts invalide/,
     );
-    expect(() => mapper.validateFullSnapshotHeader(['code', 'brands'])).toThrow(/product_name/);
+    expect(() =>
+      mapper.validateFullSnapshotHeader(['code', 'brands', 'ingredients_text', 'allergens']),
+    ).toThrow(/product_name/);
+    expect(() => mapper.validateFullSnapshotHeader(['code', 'product_name', 'allergens'])).toThrow(
+      /ingredients_text/,
+    );
+    expect(() =>
+      mapper.validateFullSnapshotHeader(['code', 'product_name', 'ingredients_text']),
+    ).toThrow(/allergens/);
+    expect(() =>
+      mapper.validateFullSnapshotHeader([
+        'code',
+        'product_name',
+        'ingredients_text_fr',
+        'allergens_tags',
+      ]),
+    ).not.toThrow();
   });
 });

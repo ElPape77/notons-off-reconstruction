@@ -58,6 +58,8 @@ export const OFF_RECONSTRUCTION_MIGRATION_FILES = Object.freeze([
   '010_indexed_ranking_categories.sql',
   '011_sealed_reconstruction_resume.sql',
   '012_attested_migration_ledger.sql',
+  '013_off_ingredients_text.sql',
+  '014_off_allergens.sql',
 ] as const);
 
 export const OFF_RECONSTRUCTION_TRACKED_FILES = Object.freeze(

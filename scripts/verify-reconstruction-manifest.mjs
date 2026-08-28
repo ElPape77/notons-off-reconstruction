@@ -276,13 +276,13 @@ const migrationNames = (await readdir(migrationsDirectory))
   .filter((filename) => filename.endsWith('.sql'))
   .sort();
 if (
-  migrationNames.length !== 12 ||
+  migrationNames.length !== 14 ||
   migrationNames.some(
     (filename, index) =>
       !/^\d{3}_[a-z0-9_-]+\.sql$/.test(filename) || Number(filename.slice(0, 3)) !== index + 1,
   )
 ) {
-  fail('séquence des migrations 001 à 012 incomplète');
+  fail('séquence des migrations 001 à 014 incomplète');
 }
 const expectedFiles = [
   ...normativeFiles,

@@ -304,6 +304,8 @@ export class MemoryCatalogRepository implements CatalogRepository {
             ? {
                 name: existing.name,
                 genericName: existing.genericName,
+                ingredientsText: existing.ingredientsText,
+                allergens: existing.allergens,
                 brand: existing.brand,
                 quantity: existing.quantity,
                 packaging: existing.packaging,
@@ -353,6 +355,8 @@ export class MemoryCatalogRepository implements CatalogRepository {
       quantity: product.quantity ?? existing.quantity,
       packaging: product.packaging ?? existing.packaging,
       genericName: product.genericName ?? existing.genericName,
+      ingredientsText: product.ingredientsText ?? existing.ingredientsText,
+      allergens: product.allergens ?? existing.allergens,
       categorySlug: product.categorySlug ?? existing.categorySlug,
       offCategories: product.offCategories ?? existing.offCategories,
       offCategoryTags: product.offCategoryTags ?? existing.offCategoryTags,
@@ -389,6 +393,8 @@ export class MemoryCatalogRepository implements CatalogRepository {
     const payload = (value: StoredProduct): unknown => ({
       name: value.name,
       genericName: value.genericName,
+      ingredientsText: value.ingredientsText,
+      allergens: value.allergens,
       brand: value.brand,
       quantity: value.quantity,
       packaging: value.packaging,

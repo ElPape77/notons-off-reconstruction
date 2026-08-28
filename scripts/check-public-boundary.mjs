@@ -182,6 +182,8 @@ const expectedMigrations = [
   '010_indexed_ranking_categories.sql',
   '011_sealed_reconstruction_resume.sql',
   '012_attested_migration_ledger.sql',
+  '013_off_ingredients_text.sql',
+  '014_off_allergens.sql',
 ];
 if (JSON.stringify(migrationNames) !== JSON.stringify(expectedMigrations)) {
   errors.push('inventaire des migrations OFF incomplet, non ordonné ou ambigu');
@@ -221,6 +223,7 @@ const expectedTests = [
   '007_sealed_reconstruction_resume_smoke.sql',
   '008_native_activation_wrappers_smoke.sql',
   '009_attested_migration_ledger_smoke.sql',
+  '010_off_allergens_projection_smoke.sql',
 ];
 if (JSON.stringify(testNames) !== JSON.stringify(expectedTests)) {
   errors.push('inventaire des tests PostgreSQL OFF incomplet, non ordonné ou ambigu');

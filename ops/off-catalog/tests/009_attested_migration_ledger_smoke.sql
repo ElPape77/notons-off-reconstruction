@@ -121,7 +121,9 @@ declare
     '009_reader_runtime_hardening.sql',
     '010_indexed_ranking_categories.sql',
     '011_sealed_reconstruction_resume.sql',
-    '012_attested_migration_ledger.sql'
+    '012_attested_migration_ledger.sql',
+    '013_off_ingredients_text.sql',
+    '014_off_allergens.sql'
   ];
   v_sha256 text[] := array[
     '899a5d466941cc0a49e92435e18fdead186bde9a79fadb1d1daac52c7cac0eed',
@@ -135,7 +137,9 @@ declare
     '88c6af7d8f36ec4519b9e98808b608c1f67b1f627a49c6fa9e3a1fac1255bf05',
     '1822888684b8b358d3e22e32e41dbc79105e0a4059225a68971a8f71a58f395e',
     '14fb606e2c185e55b684b82fb698accd3cca612fdcfce0169dd142e33cc416a1',
-    '8c72fd1e1c6c01e31df8de8e3bffd1ed578db076d9260be27aeb5404ce3f21f5'
+    '8c72fd1e1c6c01e31df8de8e3bffd1ed578db076d9260be27aeb5404ce3f21f5',
+    '7c49fb087169deb5525d1bd1d6e22a604f17ca7b5d8b48b6d1a4b8a12d6c0488',
+    '50a0c3a2fe5c6e59a49cd692a482423c28e3aa92dbf66de6f17e4454635a28e8'
   ];
   v_bad_sha256 text[];
   v_verified boolean;
@@ -162,7 +166,7 @@ begin
 
   begin
     perform off_catalog.attest_schema_migration_ledger(
-      v_filenames[1:11], v_sha256[1:11]
+      v_filenames[1:13], v_sha256[1:13]
     );
     raise exception 'migration_ledger_missing_entry_accepted';
   exception
@@ -174,7 +178,7 @@ begin
 
   begin
     perform off_catalog.attest_schema_migration_ledger(
-      v_filenames || array['013_unexpected_migration.sql'],
+      v_filenames || array['015_unexpected_migration.sql'],
       v_sha256 || array[repeat('f', 64)]
     );
     raise exception 'migration_ledger_extra_entry_accepted';

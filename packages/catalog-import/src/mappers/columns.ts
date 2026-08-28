@@ -13,6 +13,7 @@ export interface ColumnMapping {
   brand?: string;
   quantity?: string;
   packaging?: string;
+  ingredientsText?: string;
   categorySlug?: string;
   sourceProductId?: string;
   sourceImageUrl?: string;
@@ -60,6 +61,8 @@ export class ColumnMapper implements CatalogMapper {
       sourceImageUrl: read(row, this.columns.sourceImageUrl),
       imageStoragePath: read(row, this.columns.imageStoragePath),
       genericName: null,
+      ingredientsText: read(row, this.columns.ingredientsText),
+      allergens: null,
       offCategories: null,
       offCategoryTags: null,
       countries: null,

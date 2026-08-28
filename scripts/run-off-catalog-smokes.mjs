@@ -28,6 +28,7 @@ const expectedNativeTests = [
   '007_sealed_reconstruction_resume_smoke.sql',
   '008_native_activation_wrappers_smoke.sql',
   '009_attested_migration_ledger_smoke.sql',
+  '010_off_allergens_projection_smoke.sql',
 ];
 if (JSON.stringify(discoveredNativeTests) !== JSON.stringify(expectedNativeTests)) {
   throw new Error('The expected OFF catalogue test inventory is incomplete or ambiguous.');

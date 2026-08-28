@@ -49,7 +49,7 @@ describe('inventaire local des migrations OFF', () => {
     await expect(loadExpectedOffMigrationLedger(missing.root)).rejects.toThrow('incomplet');
 
     const extra = await fixture();
-    await writeFile(join(extra.migrations, '013_unexpected.sql'), '-- unexpected\n');
+    await writeFile(join(extra.migrations, '015_unexpected.sql'), '-- unexpected\n');
     await expect(loadExpectedOffMigrationLedger(extra.root)).rejects.toThrow('inattendu');
   });
 });

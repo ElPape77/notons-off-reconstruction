@@ -61,6 +61,8 @@ const stagingRecord = (product: ImportProduct): Record<string, unknown> => ({
   canonical_gtin: product.canonicalGtin,
   name: product.name,
   generic_name: product.genericName,
+  ingredients_text: product.ingredientsText,
+  allergens: product.allergens,
   brand: product.brand,
   quantity: product.quantity,
   packaging: product.packaging,

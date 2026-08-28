@@ -28,7 +28,7 @@ placé dans l’application, Git ou le manifeste public. `--resume` reprend au
 dernier offset source confirmé sans remapper ni réécrire les lignes déjà
 engagées. Avant toute reconstruction, le rôle importeur fait attester, sans
 pouvoir le lire directement, que le registre PostgreSQL contient exactement les
-noms et SHA-256 des migrations 001 à 012 du commit public courant. La commande
+noms et SHA-256 des migrations 001 à 014 du commit public courant. La commande
 et son contrat exact sont détaillés dans
 `docs/open-food-facts-reconstruction-method.md`.
 
@@ -80,7 +80,8 @@ La projection Notons contient le GTIN, les noms, marque, quantité, catégories,
 pays de vente déclarés, enseignes et lieux d'achat déclarés, Nutri-Score,
 Green-Score (avec compatibilité des anciens champs `ecoscore_*`), portion,
 valeurs nutritionnelles pour 100 g et par portion, nutriments supplémentaires,
-liens et images de face Open Food Facts, ainsi que les dates source.
+la liste d'ingrédients, les allergènes déclarés, les liens et images de face
+Open Food Facts, ainsi que les dates source.
 Les 20 mesures nutritionnelles structurées ne sont pas dupliquées dans le
 champ flexible, et les valeurs vides y sont omises.
 

@@ -27,6 +27,8 @@ export const EMPTY_PRODUCT_NUTRITION: Readonly<ProductNutrition> = Object.freeze
 
 export interface OpenFoodFactsProductMetadata {
   genericName: string | null;
+  ingredientsText: string | null;
+  allergens: string[] | null;
   offCategories: string[] | null;
   offCategoryTags: string[] | null;
   countries: string[] | null;

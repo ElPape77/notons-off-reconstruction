@@ -28,6 +28,7 @@ const DEFAULT_BATCH_SIZE = 500;
 // generated statement below PostgreSQL's 65,535-parameter protocol limit.
 const MAX_BATCH_SIZE = 1_000;
 const MAX_ERROR_SAMPLES = 20;
+const MAX_INGREDIENTS_TEXT_LENGTH = 10_000;
 
 const emptyCounters = (): ImportCounters => ({
   currentOffset: 0,
@@ -200,6 +201,8 @@ const normalizeProduct = (product: ImportProduct): ImportProduct => ({
   quantity: cleanText(product.quantity, 80),
   packaging: cleanText(product.packaging, 160),
   genericName: cleanText(product.genericName, 160),
+  ingredientsText: cleanText(product.ingredientsText, MAX_INGREDIENTS_TEXT_LENGTH),
+  allergens: cleanList(product.allergens, 64, 16_384),
   categorySlug: cleanText(product.categorySlug, 100),
   offCategories: cleanList(product.offCategories),
   offCategoryTags: cleanList(product.offCategoryTags),

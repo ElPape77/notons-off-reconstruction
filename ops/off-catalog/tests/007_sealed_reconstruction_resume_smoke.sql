@@ -75,8 +75,23 @@ select off_catalog.commit_native_reconstruction_batch(
   1,
   0,
   0,
-  '[{"barcode":"3017620422003","canonical_gtin":"03017620422003","name":"Produit test"}]'::jsonb
+  '[{"barcode":"3017620422003","canonical_gtin":"03017620422003","name":"Produit test","ingredients_text":"Sucre, noisettes, cacao"}]'::jsonb
 );
+
+do $ingredients_were_staged$
+begin
+  if (
+    select ingredients_text
+    from off_catalog.products_staging
+    where dataset_id = (
+      select id from off_catalog.datasets where source_sha256 = repeat('a', 64)
+    )
+      and canonical_gtin = '03017620422003'
+  ) is distinct from 'Sucre, noisettes, cacao' then
+    raise exception 'native_reconstruction_ingredients_not_staged';
+  end if;
+end
+$ingredients_were_staged$;
 
 select *
 from off_catalog.seal_native_reconstruction(

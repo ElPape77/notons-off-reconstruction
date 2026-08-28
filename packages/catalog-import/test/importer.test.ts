@@ -236,6 +236,7 @@ describe("pipeline d'import", () => {
     repository.products.set('04006381333931', {
       ...corrected,
       name: 'Nom corrigé par la modération',
+      ingredientsText: 'Recette corrigée par la modération.',
       categorySlug: 'chips-nature',
       dataQualityStatus: 'verified',
       sourceKind: 'moderator',
@@ -243,9 +244,75 @@ describe("pipeline d'import", () => {
     await importCatalog(options(third, repository));
     expect(repository.products.get('04006381333931')).toMatchObject({
       name: 'Nom corrigé par la modération',
+      ingredientsText: 'Recette corrigée par la modération.',
       categorySlug: 'chips-nature',
       dataQualityStatus: 'verified',
     });
+  });
+
+  it("détecte et fusionne une modification d'ingrédients sans timestamp source", async () => {
+    const first = await fixture(
+      'ingredients-first.jsonl',
+      `${JSON.stringify({
+        code: '4006381333931',
+        product_name: 'Produit stable',
+        ingredients_text_fr: 'Farine, eau.',
+      })}\n`,
+    );
+    const second = await fixture(
+      'ingredients-second.jsonl',
+      `${JSON.stringify({
+        code: '4006381333931',
+        product_name: 'Produit stable',
+        ingredients_text_fr: 'Farine, eau, sel.',
+      })}\n`,
+    );
+    const repository = new MemoryCatalogRepository();
+    const offMapper = new OpenFoodFactsMapper();
+
+    await importCatalog(options(first, repository, { mapper: offMapper }));
+    const result = await importCatalog(options(second, repository, { mapper: offMapper }));
+
+    expect(result).toMatchObject({
+      insertedRows: 0,
+      updatedRows: 1,
+      activation: { unchangedRows: 0 },
+    });
+    expect(repository.products.get('04006381333931')?.ingredientsText).toBe('Farine, eau, sel.');
+  });
+
+  it('detecte et fusionne une modification des allergenes sans timestamp source', async () => {
+    const first = await fixture(
+      'allergens-first.jsonl',
+      `${JSON.stringify({
+        code: '4006381333931',
+        product_name: 'Produit stable',
+        allergens: 'Lait',
+      })}\n`,
+    );
+    const second = await fixture(
+      'allergens-second.jsonl',
+      `${JSON.stringify({
+        code: '4006381333931',
+        product_name: 'Produit stable',
+        allergens: 'Lait,Sesame',
+      })}\n`,
+    );
+    const repository = new MemoryCatalogRepository();
+    const offMapper = new OpenFoodFactsMapper();
+
+    await importCatalog(options(first, repository, { mapper: offMapper }));
+    const result = await importCatalog(options(second, repository, { mapper: offMapper }));
+
+    expect(result).toMatchObject({
+      insertedRows: 0,
+      updatedRows: 1,
+      activation: { unchangedRows: 0 },
+    });
+    expect(repository.products.get('04006381333931')?.allergens).toEqual([
+      'Lait',
+      'Graines de sésame',
+    ]);
   });
 
   it('ignore une generation OFF dont le timestamp produit est inchange', async () => {

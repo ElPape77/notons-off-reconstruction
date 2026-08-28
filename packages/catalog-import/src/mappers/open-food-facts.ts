@@ -24,6 +24,72 @@ const MAX_LIST_ITEMS = 256;
 const MAX_NUTRIMENT_FIELDS = 400;
 const BARCODE_COLUMNS = ['code', 'barcode', 'gtin'];
 const PRODUCT_NAME_COLUMNS = ['product_name_fr', 'product_name', 'generic_name_fr', 'generic_name'];
+const INGREDIENTS_TEXT_COLUMNS = ['ingredients_text_fr', 'ingredients_text'];
+const ALLERGEN_COLUMNS = ['allergens_fr', 'allergens', 'allergens_tags_fr', 'allergens_tags'];
+const EU_ALLERGEN_LABELS = new Map<string, string>([
+  ['gluten', 'Gluten'],
+  ['cereals-containing-gluten', 'Gluten'],
+  ['wheat', 'Gluten'],
+  ['rye', 'Gluten'],
+  ['barley', 'Gluten'],
+  ['oats', 'Gluten'],
+  ['spelt', 'Gluten'],
+  ['kamut', 'Gluten'],
+  ['crustaceans', 'Crustacés'],
+  ['crustacean', 'Crustacés'],
+  ['eggs', 'Œufs'],
+  ['egg', 'Œufs'],
+  ['oeufs', 'Œufs'],
+  ['fish', 'Poissons'],
+  ['poissons', 'Poissons'],
+  ['peanuts', 'Arachides'],
+  ['peanut', 'Arachides'],
+  ['arachides', 'Arachides'],
+  ['soybeans', 'Soja'],
+  ['soybean', 'Soja'],
+  ['soy', 'Soja'],
+  ['soya', 'Soja'],
+  ['soja', 'Soja'],
+  ['milk', 'Lait'],
+  ['lactose', 'Lait'],
+  ['lait', 'Lait'],
+  ['nuts', 'Fruits à coque'],
+  ['tree-nuts', 'Fruits à coque'],
+  ['almonds', 'Fruits à coque'],
+  ['amandes', 'Fruits à coque'],
+  ['hazelnuts', 'Fruits à coque'],
+  ['noisettes', 'Fruits à coque'],
+  ['walnuts', 'Fruits à coque'],
+  ['noix', 'Fruits à coque'],
+  ['cashew-nuts', 'Fruits à coque'],
+  ['cashews', 'Fruits à coque'],
+  ['noix-de-cajou', 'Fruits à coque'],
+  ['pecan-nuts', 'Fruits à coque'],
+  ['noix-de-pecan', 'Fruits à coque'],
+  ['brazil-nuts', 'Fruits à coque'],
+  ['noix-du-bresil', 'Fruits à coque'],
+  ['pistachios', 'Fruits à coque'],
+  ['pistaches', 'Fruits à coque'],
+  ['macadamia-nuts', 'Fruits à coque'],
+  ['noix-de-macadamia', 'Fruits à coque'],
+  ['queensland-nuts', 'Fruits à coque'],
+  ['fruits-a-coque', 'Fruits à coque'],
+  ['celery', 'Céleri'],
+  ['celeri', 'Céleri'],
+  ['mustard', 'Moutarde'],
+  ['moutarde', 'Moutarde'],
+  ['sesame-seeds', 'Graines de sésame'],
+  ['sesame', 'Graines de sésame'],
+  ['graines-de-sesame', 'Graines de sésame'],
+  ['sulphur-dioxide-and-sulphites', 'Anhydride sulfureux et sulfites'],
+  ['sulfur-dioxide-and-sulfites', 'Anhydride sulfureux et sulfites'],
+  ['sulphites', 'Anhydride sulfureux et sulfites'],
+  ['sulfites', 'Anhydride sulfureux et sulfites'],
+  ['lupin', 'Lupin'],
+  ['molluscs', 'Mollusques'],
+  ['mollusks', 'Mollusques'],
+  ['mollusques', 'Mollusques'],
+]);
 const STRUCTURED_NUTRIMENT_BASES = new Set([
   'energy',
   'energy-kj',
@@ -146,6 +212,47 @@ const firstList = (
     if (parsed) return parsed;
   }
   return null;
+};
+
+const readableAllergenKey = (value: string): string =>
+  value
+    .trim()
+    .toLocaleLowerCase('fr')
+    .replace(/^[a-z]{2,3}:/, '')
+    .replaceAll('œ', 'oe')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[_\s]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const readableAllergenFallback = (value: string): string | null => {
+  const label = value
+    .trim()
+    .replace(/^[a-z]{2,3}:/i, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!label) return null;
+  const [first, ...rest] = Array.from(label);
+  return `${first?.toLocaleUpperCase('fr') ?? ''}${rest.join('')}`;
+};
+
+const allergenValues = (row: RawCatalogRow): string[] | null => {
+  const source = firstList(row, ALLERGEN_COLUMNS, false, 64, 16_384);
+  if (!source) return null;
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const item of source) {
+    const label =
+      EU_ALLERGEN_LABELS.get(readableAllergenKey(item)) ?? readableAllergenFallback(item);
+    if (!label) continue;
+    const identity = label.toLocaleLowerCase('fr');
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    result.push(label);
+  }
+  return result.length > 0 ? result : null;
 };
 
 const hasAny = (tags: readonly string[] | null, expected: readonly string[]): boolean => {
@@ -353,10 +460,14 @@ export class OpenFoodFactsMapper implements CatalogMapper {
     );
     const hasBarcode = BARCODE_COLUMNS.some((column) => available.has(column));
     const hasProductName = PRODUCT_NAME_COLUMNS.some((column) => available.has(column));
-    if (!hasBarcode || !hasProductName) {
+    const hasIngredients = INGREDIENTS_TEXT_COLUMNS.some((column) => available.has(column));
+    const hasAllergens = ALLERGEN_COLUMNS.some((column) => available.has(column));
+    if (!hasBarcode || !hasProductName || !hasIngredients || !hasAllergens) {
       const missing = [
         ...(hasBarcode ? [] : ['code']),
         ...(hasProductName ? [] : ['product_name']),
+        ...(hasIngredients ? [] : ['ingredients_text']),
+        ...(hasAllergens ? [] : ['allergens']),
       ].join(', ');
       throw new RowMappingError(
         'INVALID_FULL_SNAPSHOT_HEADER',
@@ -425,6 +536,8 @@ export class OpenFoodFactsMapper implements CatalogMapper {
       sourceImageUrl: imageFrontUrl ?? imageFrontOriginalUrl,
       imageStoragePath: explicitStoragePath ?? (pathIsRemote ? null : imagePath),
       genericName: firstString(row, ['generic_name_fr', 'generic_name']),
+      ingredientsText: firstString(row, [...INGREDIENTS_TEXT_COLUMNS]),
+      allergens: allergenValues(row),
       offCategories: firstList(row, ['categories_fr', 'categories']),
       offCategoryTags,
       countries: firstList(row, ['countries_fr', 'countries'], false, 128, 16_384),
@@ -464,4 +577,4 @@ export class OpenFoodFactsMapper implements CatalogMapper {
 export const OPEN_FOOD_FACTS_DEFAULT_COUNTRY_TAGS = DEFAULT_COUNTRY_TAGS;
 export const OPEN_FOOD_FACTS_DEFAULT_CATEGORY_TAGS = DEFAULT_CATEGORY_TAGS;
 export const OPEN_FOOD_FACTS_MAX_NUTRIMENT_FIELDS = MAX_NUTRIMENT_FIELDS;
-export const OPEN_FOOD_FACTS_PROJECTION_VERSION = 'open-food-facts-lite/2026-08-11.3';
+export const OPEN_FOOD_FACTS_PROJECTION_VERSION = 'open-food-facts-lite/2026-08-28.1';

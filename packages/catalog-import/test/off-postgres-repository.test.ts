@@ -68,6 +68,8 @@ const product: ImportProduct = {
   canonicalGtin: '03017620422003',
   name: 'Produit test',
   genericName: 'Pâte à tartiner',
+  ingredientsText: 'Sucre, noisettes, cacao.',
+  allergens: ['Lait', 'Fruits à coque'],
   brand: 'Notons',
   quantity: '400 g',
   packaging: 'Pot',
@@ -211,6 +213,8 @@ describe('OffCatalogPostgresRepository', () => {
       expect.objectContaining({
         barcode: product.barcode,
         canonical_gtin: product.canonicalGtin,
+        ingredients_text: product.ingredientsText,
+        allergens: product.allergens,
         off_category_tags: product.offCategoryTags,
         sugars_100g: 56.3,
         proteins_100g: 6.3,

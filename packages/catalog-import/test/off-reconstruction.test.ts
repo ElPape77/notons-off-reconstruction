@@ -54,12 +54,17 @@ afterEach(async () => {
 
 const archive = async (
   rows: readonly string[],
-  header = 'code\tproduct_name\tbrands\tcategories_tags',
+  header = 'code\tproduct_name\tbrands\tcategories_tags\tingredients_text\tallergens',
 ): Promise<{ filePath: string; sha256: string }> => {
   const directory = await mkdtemp(join(tmpdir(), 'notons-off-reconstruction-'));
   temporaryDirectories.push(directory);
   const filePath = join(directory, 'catalog.tsv.gz');
-  const data = gzipSync([header, ...rows].join('\n') + '\n');
+  const expectedColumns = header.split('\t').length;
+  const paddedRows = rows.map((row) => {
+    const missingColumns = Math.max(0, expectedColumns - row.split('\t').length);
+    return `${row}${'\t'.repeat(missingColumns)}`;
+  });
+  const data = gzipSync([header, ...paddedRows].join('\n') + '\n');
   await writeFile(filePath, data);
   return { filePath, sha256: createHash('sha256').update(data).digest('hex') };
 };
@@ -225,6 +230,8 @@ describe('reconstruction OFF native et isolée', () => {
       'product_name',
       'brands',
       'categories_tags',
+      'ingredients_text',
+      'allergens',
     ]);
   });
 
@@ -255,6 +262,19 @@ describe('reconstruction OFF native et isolée', () => {
       ).rejects.toThrow('En-tête OFF vide, dupliqué');
       expect(await readdir(directory)).toEqual([]);
     });
+    expect(repository.beginCalls).toBe(0);
+  });
+
+  it('refuse un snapshot qui omet la projection composition ou allergènes', async () => {
+    const source = await archive(
+      ['3017620422003\tProduit\tExemple\ten:foods'],
+      'code\tproduct_name\tbrands\tcategories_tags',
+    );
+    const repository = new FakeOffRepository();
+
+    await expect(
+      reconstructOffCatalog(baseOptions(source.filePath, source.sha256, repository)),
+    ).rejects.toThrow(/ingredients_text, allergens/);
     expect(repository.beginCalls).toBe(0);
   });
 
@@ -608,7 +628,7 @@ describe('manifeste public de reconstruction', () => {
     expect(JSON.stringify(manifest)).not.toContain('Pâte à tartiner');
     expect(manifest.transformation.files.length).toBeGreaterThan(10);
     expect(manifest.transformation.files).toContainEqual({
-      path: 'ops/off-catalog/migrations/012_attested_migration_ledger.sql',
+      path: 'ops/off-catalog/migrations/014_off_allergens.sql',
       sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
     expect(manifest.transformation.files).toContainEqual({

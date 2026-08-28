@@ -58,6 +58,8 @@ Notons n’entrent jamais dans ce pipeline.
 | `brand`                               | `brands`, puis `brand`                                                                                                                      |
 | `quantity`                            | `quantity`                                                                                                                                  |
 | `packaging`                           | `packaging_text_fr`, `packaging_text`, puis `packaging`                                                                                     |
+| `ingredients_text`                    | `ingredients_text_fr`, puis `ingredients_text`; texte nettoyé, borné et conservé sans interprétation                                        |
+| `allergens`                           | `allergens_fr`, `allergens`, `allergens_tags_fr`, puis `allergens_tags`; liste nettoyée, dédupliquée et bornée                              |
 | `off_categories`, `off_category_tags` | `categories_fr`/`categories` et `categories_tags`                                                                                           |
 | `category_slug`                       | compatibilité historique : première règle ordonnée correspondant à six sous-familles de snacks ; ce champ ne filtre jamais l’import général |
 | `countries`, `country_tags`           | `countries_fr`/`countries` et `countries_tags`                                                                                              |
@@ -78,8 +80,9 @@ son hôte est `openfoodfacts.org`, `openfoodfacts.net` ou un de leurs
 sous-domaines, sans identifiant incorporé. Les octets des images ne font pas
 partie de la base dérivée ; seules les URL sont stockées.
 
-Les limites exactes, l’ordre des replis, les règles de catégories et les champs
-nutritionnels sont normatifs dans
+Les limites exactes, l’ordre des replis, la validation obligatoire des colonnes
+de composition et d’allergènes dans un snapshot complet, les règles de
+catégories et les champs nutritionnels sont normatifs dans
 `packages/catalog-import/src/mappers/open-food-facts.ts`. Le manifeste public
 en fixe le contenu par SHA-256 et par révision immuable.
 
@@ -113,7 +116,7 @@ indiquée par le manifeste :
    production, elle est remplacée par un identifiant LOGIN membre uniquement de
    `off_catalog_importer`, créé hors du dépôt par le gestionnaire de secrets.
    Avant toute recherche de génération existante, lecture de l’archive ou
-   écriture, l’importeur calcule le SHA-256 des migrations normatives 001 à 012
+   écriture, l’importeur calcule le SHA-256 des migrations normatives 001 à 014
    du commit courant et appelle une primitive `SECURITY DEFINER`. Celle-ci
    atteste une égalité exacte avec `off_catalog.schema_migrations` : tout nom ou
    SHA différent, toute migration manquante ou supplémentaire arrête la

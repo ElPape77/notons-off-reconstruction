@@ -17,17 +17,17 @@ insert into off_catalog.datasets (
 );
 
 insert into off_catalog.products_staging (
-  dataset_id, barcode, canonical_gtin, name, brand,
+  dataset_id, barcode, canonical_gtin, name, brand, ingredients_text,
   off_category_tags, open_food_facts_url
 ) values (
   '98000000-0000-4000-8000-000000000001',
   '3017620422003', off_catalog.normalize_gtin('3017620422003'),
-  'Produit wrapper boisson', 'Marque smoke', array['en:beverages'],
+  'Produit wrapper boisson', 'Marque smoke', 'Eau, sucre, citron', array['en:beverages'],
   'https://world.openfoodfacts.org/product/3017620422003'
 ), (
   '98000000-0000-4000-8000-000000000001',
   '4006381333931', off_catalog.normalize_gtin('4006381333931'),
-  'Produit wrapper laitier', 'Marque smoke', array['en:dairies'],
+  'Produit wrapper laitier', 'Marque smoke', null, array['en:dairies'],
   'https://world.openfoodfacts.org/product/4006381333931'
 );
 
@@ -93,6 +93,13 @@ begin
   );
   if v_count <> 2 then
     raise exception 'native_wrapper_publication_mismatch: %', v_count;
+  end if;
+  if (
+    select ingredients_text
+    from off_catalog.products_published
+    where canonical_gtin = '03017620422003'
+  ) is distinct from 'Eau, sucre, citron' then
+    raise exception 'native_wrapper_ingredients_publication_mismatch';
   end if;
 end
 $native_wrapper_publication$;
